@@ -1,0 +1,11 @@
+service: MapData
+
+provider:
+  name: aws
+  runtime: java8
+package:
+  artifact: target/scala-2.12/mapData.jar
+
+functions:
+  mapData:
+    handler: MapData.Handler

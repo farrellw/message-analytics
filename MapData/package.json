@@ -1,0 +1,13 @@
+{
+  "name": "scalaservice",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build:scala": "sbt assembly",
+    "build:deploy": "npm run build:scala; npm run deploy",
+    "deploy": "serverless deploy"
+  },
+  "author": "",
+  "license": "ISC"
+}

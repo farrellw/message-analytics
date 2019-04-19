@@ -1,0 +1,14 @@
+service: SaveInitialFile
+
+provider:
+  name: aws
+  runtime: java8
+
+package:
+  artifact: target/scala-2.12/saveInitialFile.jar
+
+functions:
+  saveFile:
+    handler: saveFile.ApiGatewayHandler
+    events:
+      - http: POST saveFile

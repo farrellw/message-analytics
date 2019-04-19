@@ -1,0 +1,42 @@
+*.class
+*.log
+
+# sbt specific
+.cache
+.history
+.lib/
+dist/*
+target/
+lib_managed/
+src_managed/
+project/boot/
+project/plugins/project/
+
+# Serverless directories
+.serverless
+
+# sbt
+# (may want to keep parts of 'project')
+bin/
+build/
+
+# eclipse
+build
+.classpath
+.project
+.settings
+.worksheet
+
+.idea
+
+# mac
+.DS_Store
+
+# other?
+.history
+.scala_dependencies
+.cache
+.cache-main
+
+#general
+*.class

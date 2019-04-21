@@ -1,0 +1,5 @@
+package MapData
+
+class SlackMessage {
+
+}

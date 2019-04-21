@@ -12,6 +12,7 @@ class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
     implicit val s3 = S3.at(Region.US_EAST_1)
 
     val bucketName: String = "farrell-data-engineering-target"
+    val executionFinished: String = "Your function finished executing"
 
     val maybeBucket: Option[Bucket] = s3.bucket(bucketName)
 
@@ -19,30 +20,33 @@ class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
       case Some(bucket) => {
         val records = input.getRecords
 
-        // TODO how to use map instead of forEach on something that isn't an array
         records.forEach((x: S3EventNotification.S3EventNotificationRecord)  => {
           val key = x.getS3.getObject.getKey
           val obj: Option[S3Object] = s3.get(bucket, key)
 
-          obj.foreach(o => {
-            val stream = o.content
-            val jsonInput: JsValue = try {  Json.parse(stream) } finally { stream.close() }
+          obj match {
+            case Some(o) => {
+              val stream = o.content
+              val jsonInput: JsValue = try {  Json.parse(stream) } finally { stream.close() }
 
-            val slackMessages: JsResult[SlackMessages] = jsonInput.validate[SlackMessages]
+              val slackMessages: JsResult[SlackMessages] = jsonInput.validate[SlackMessages]
 
-            slackMessages match {
-              case JsSuccess(slackMessages: SlackMessages, jsPath) => {
-                slackMessages.messages.foreach(println)
+              slackMessages match {
+                case JsSuccess(slackMessages: SlackMessages, jsPath) => {
+                  slackMessages.messages.foreach(println)
+                  return (executionFinished + "successfully", null)
+                }
+                case JsError(e) => return (executionFinished, new Exception("An error occurred validating JSON"))
               }
-              case JsError(e) => println(e)
             }
-          })
+            case None => return (executionFinished, new Exception("Error Accessing key " + key))
+          }
         })
       }
-      case None => return ("Your function finished executing", new Exception("No bucket found with key " + bucketName))
+      case None => return (executionFinished, new Exception("No bucket found with name " + bucketName))
     }
 
 
-    ("Go Serverless v1.0! Your function executed successfully!", null)
+    (executionFinished, null)
   }
 }

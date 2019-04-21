@@ -11,7 +11,7 @@ class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
   def handleRequest(input: S3EventNotification, context: Context): (String, Exception) = {
     implicit val s3 = S3.at(Region.US_EAST_1)
 
-    val bucketName: String = "farrell-data-engineeri-target"
+    val bucketName: String = "farrell-data-engineering-target"
 
     val maybeBucket: Option[Bucket] = s3.bucket(bucketName)
 

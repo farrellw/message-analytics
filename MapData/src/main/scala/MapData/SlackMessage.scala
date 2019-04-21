@@ -8,9 +8,9 @@ case class SlackMessage(text: String, user: String)
 
 object SlackMessage {
   implicit val slackMessageReads: Reads[SlackMessage] = (
-    (JsPath \ "text" ).read[String] and
+    (JsPath \ "text").read[String] and
       (JsPath \ "user").read[String]
-    )(SlackMessage.apply _)
+    ) (SlackMessage.apply _)
 }
 
 
@@ -18,7 +18,7 @@ case class SlackMessages(messages: List[SlackMessage], ok: Boolean)
 
 object SlackMessages {
   implicit val slackMessagesReads: Reads[SlackMessages] = (
-    (JsPath \ "messages" ).read[List[SlackMessage]] and
+    (JsPath \ "messages").read[List[SlackMessage]] and
       (JsPath \ "ok").read[Boolean]
-    )(SlackMessages.apply _)
+    ) (SlackMessages.apply _)
 }

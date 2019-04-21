@@ -4,12 +4,13 @@ import play.api.libs.json.{JsPath, Reads}
 import play.api.libs.functional.syntax._
 
 
-case class SlackMessage(text: String, user: String)
+case class SlackMessage(text: String, user: String, ts: String)
 
 object SlackMessage {
   implicit val slackMessageReads: Reads[SlackMessage] = (
     (JsPath \ "text").read[String] and
-      (JsPath \ "user").read[String]
+      (JsPath \ "user").read[String] and
+      (JsPath \ "ts").read[String]
     ) (SlackMessage.apply _)
 }
 

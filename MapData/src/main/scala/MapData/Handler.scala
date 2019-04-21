@@ -20,21 +20,24 @@ class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
       case Some(bucket) => {
         val records = input.getRecords
 
-        records.forEach((x: S3EventNotification.S3EventNotificationRecord)  => {
+        records.forEach((x: S3EventNotification.S3EventNotificationRecord) => {
           val key = x.getS3.getObject.getKey
           val obj: Option[S3Object] = s3.get(bucket, key)
 
           obj match {
             case Some(o) => {
               val stream = o.content
-              val jsonInput: JsValue = try {  Json.parse(stream) } finally { stream.close() }
+              val jsonInput: JsValue = try {
+                Json.parse(stream)
+              } finally {
+                stream.close()
+              }
 
               val slackMessages: JsResult[SlackMessages] = jsonInput.validate[SlackMessages]
 
               slackMessages match {
                 case JsSuccess(slackMessages: SlackMessages, jsPath) => {
                   slackMessages.messages.foreach(println)
-                  return (executionFinished + "successfully", null)
                 }
                 case JsError(e) => return (executionFinished, new Exception("An error occurred validating JSON"))
               }
@@ -42,11 +45,10 @@ class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
             case None => return (executionFinished, new Exception("Error Accessing key " + key))
           }
         })
+        (executionFinished, null)
       }
       case None => return (executionFinished, new Exception("No bucket found with name " + bucketName))
     }
 
-
-    (executionFinished, null)
   }
 }

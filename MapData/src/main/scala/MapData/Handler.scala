@@ -1,6 +1,6 @@
 package MapData
 
-import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
+import com.amazonaws.services.lambda.runtime.{Context, RequestHandler, RequestStreamHandler}
 import com.amazonaws.services.s3.event.S3EventNotification
 import awscala._, dynamodbv2._
 import s3.{Bucket, S3, S3Object}
@@ -55,22 +55,26 @@ class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
                           val messages = slackMessages.messages
                           messages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
                         }
-                        case None => return (executionFinishedError, new Exception("Cannot find table name " + tableName))
+                        case None => (executionFinishedError, new Exception("Cannot find table name " + tableName))
                       }
 
                     }
-                    case Failure(e) => return (executionFinishedError, new Exception("Failed connecting to dynamoDB"))
+                    case Failure(e) => (executionFinishedError, new Exception("Failed connecting to dynamoDB"))
                   }
                 }
-                case JsError(e) => return (executionFinishedError, new Exception("An error occurred validating JSON"))
+                case JsError(e) => (executionFinishedError, new Exception("An error occurred validating JSON"))
               }
             }
-            case None => return (executionFinishedError, new Exception("Error Accessing key " + key))
+            case None => (executionFinishedError, new Exception("Error Accessing key " + key))
           }
         })
         (executionFinished, null)
       }
-      case None => return (executionFinishedError, new Exception("No bucket found with name " + bucketName))
+      case None => (executionFinishedError, new Exception("No bucket found with name " + bucketName))
     }
+  }
+
+  def writeToDynamo(tableName: String, slackMessages: SlackMessages): Unit ={
+
   }
 }

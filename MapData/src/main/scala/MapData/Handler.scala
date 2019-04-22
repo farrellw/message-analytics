@@ -7,16 +7,15 @@ import s3.{Bucket, S3, S3Object}
 import play.api.libs.json._
 import scala.util.{Try, Success, Failure}
 
-class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
+class Handler extends RequestHandler[S3EventNotification, Either[Exception, String]] {
 
-  def handleRequest(input: S3EventNotification, context: Context): (String, Exception) = {
+  def handleRequest(input: S3EventNotification, context: Context): Either[Exception, String] = {
     val region: Region = Region.US_EAST_1
 
     implicit val s3 = S3.at(region)
     implicit val dynamoDB = DynamoDB.at(region)
 
     val bucketName: String = "farrell-data-engineering-target"
-    val executionFinishedError: String = "Your function finished executing with an error: "
     val executionFinished: String = "Your function finished executing successfully"
 
     // TODO only access bucket if input.getRecords is not empty
@@ -45,9 +44,9 @@ class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
 
               slackMessages match {
                 case JsSuccess(slackMessages: SlackMessages, jsPath) => {
+
                   val tableName: String = "messages-one"
                   val tableOrError: Try[Option[Table]] = Try(dynamoDB.table(tableName))
-
                   tableOrError match {
                     case Success(table: Option[Table]) => {
                       table match {
@@ -55,26 +54,27 @@ class Handler extends RequestHandler[S3EventNotification, (String, Exception)] {
                           val messages = slackMessages.messages
                           messages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
                         }
-                        case None => return (executionFinishedError, new Exception("Cannot find table name " + tableName))
+                        case None => {
+                          return Left(new Exception("Cannot find table name " + tableName))
+                        }
                       }
-
                     }
-                    case Failure(e) => return (executionFinishedError, new Exception("Failed connecting to dynamoDB"))
+                    case Failure(e) => return Left(new Exception("Failed connecting to dynamoDB"))
                   }
                 }
-                case JsError(e) => return (executionFinishedError, new Exception("An error occurred validating JSON"))
+                case JsError(e) => return Left(new Exception("An error occurred validating JSON")
               }
             }
-            case None => return (executionFinishedError, new Exception("Error Accessing key " + key))
+            case None => return Left(new Exception("Error Accessing key " + key))
           }
         })
-        (executionFinished, null)
+        return Right(executionFinished)
       }
-      case None => (executionFinishedError, new Exception("No bucket found with name " + bucketName))
+      case None => Left(new Exception("No bucket found with name " + bucketName))
     }
   }
-
-  def writeToDynamo(tableName: String, slackMessages: SlackMessages): Unit ={
-
-  }
+//
+//  def writeToDynamo(tableName: String, slackMessages: SlackMessages): (String, Exception) = {
+//
+//  }
 }

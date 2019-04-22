@@ -2,10 +2,10 @@ package MapData
 
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 import com.amazonaws.services.s3.event.S3EventNotification
-import awscala._, dynamodbv2._
+import awscala._, dynamodbv2.{DynamoDB, Table}
 import s3.{Bucket, S3, S3Object}
 import play.api.libs.json._
-import scala.util.{Try}
+import scala.util.Try
 import scala.collection.JavaConverters._
 
 class Handler extends RequestHandler[S3EventNotification, Either[Throwable, String]] {
@@ -13,7 +13,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
   def handleRequest(input: S3EventNotification, context: Context): Either[Throwable, String] = {
     val region: Region = Region.US_EAST_1
 
-    implicit val s3 = S3.at(region)
+    implicit val s3: S3 = S3.at(region)
 
     val bucketName: String = "farrell-data-engineering-target"
 
@@ -24,35 +24,42 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
     } else {
       val bucket: Either[Exception, Bucket] = s3.bucket(bucketName).toRight(new Exception("Retrieving Records from S3"))
 
-      bucket.map(b => {
+      bucket.flatMap(b => {
         val recordsScala = records.asScala.toList
-        recordsScala.map(_.getS3.getObject.getKey).flatMap(parseS3Object(b, s3))
-      }).flatMap(writeToDynamo(tableName = "messages-one", region = region))
+        val slackMessageList = recordsScala.map(_.getS3.getObject.getKey).map(parseS3Object(b, s3)).flatMap(_.getOrElse(List.empty))
+        writeToDynamo(tableName = "messages-one", region = region)(slackMessageList)
+      })
     }
   }
 
-  def parseS3Object(b: Bucket, s3: S3)(x: String): List[SlackMessage] = {
-    val obj: Option[S3Object] = s3.get(b, x)
+  def parseS3Object(b: Bucket, s3: S3)(x: String): Either[Throwable, List[SlackMessage]] = {
+    val obj: Try[Option[S3Object]] = Try(s3.get(b, x))
 
-    obj match {
-      case Some(o) => {
-        val stream = o.content
-        val jsonInput: JsValue = try {
-          Json.parse(stream)
-        } finally {
-          stream.close()
-        }
+    obj.toEither.flatMap(ob => {
+      ob.toRight(new Exception("Object not found in s3")).map(o => {
+        parseMessages(parseJSON(o))
+      })
+    })
+  }
 
-        // TODO allow for individual message parse failure, without failing the whole thing
-        val slackMessages: JsResult[SlackMessages] = jsonInput.validate[SlackMessages]
-        slackMessages match {
-          case JsSuccess(slackMessages: SlackMessages, jsPath) => {
-            slackMessages.messages
-          }
-          case JsError(e) => List.empty[SlackMessage]
-        }
+  def parseJSON(obj: S3Object): JsValue = {
+    val stream = obj.content
+    val jsonInput: JsValue = try {
+      Json.parse(stream)
+    } finally {
+      stream.close()
+    }
+    jsonInput
+  }
+
+  def parseMessages(jsonInput: JsValue): List[SlackMessage] = {
+    // TODO allow for individual message parse failure, without failing the whole thing
+    val slackMessages: JsResult[SlackMessages] = jsonInput.validate[SlackMessages]
+    slackMessages match {
+      case JsSuccess(slackMessages: SlackMessages, jsPath) => {
+        slackMessages.messages
       }
-      case None => List.empty[SlackMessage]
+      case JsError(e) => List.empty[SlackMessage]
     }
   }
 
@@ -61,13 +68,13 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
 
     Try(dynamoDB.table(tableName)).toEither.flatMap(tab => {
       tab.toRight(new Exception("Table " + tableName + " not found")).map(t => {
-        slackMessages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
+        slackMessages.foreach(putToDynamo(t))
         return Right("Messages put successfully")
       })
     })
   }
 
-  def putToDynamo(table: Table, message: SlackMessage): Unit ={
-    table.put(m.user)
+  def putToDynamo(table: Table)(message: SlackMessage)(implicit dynamoDB: DynamoDB): Unit = {
+    table.put(message.user, message.ts, "Text" -> message.text)
   }
 }

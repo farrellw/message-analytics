@@ -20,26 +20,18 @@ class Handler extends RequestHandler[S3EventNotification, Either[Exception, Stri
     val records = input.getRecords
 
     if (records.isEmpty()) {
-      return Right("Function finished executing on 0 records")
+      Right("Function finished executing on 0 records")
     } else {
-      val bucket: Option[Bucket] = s3.bucket(bucketName)
+      val bucket: Either[Exception, Bucket] = s3.bucket(bucketName).toRight(new Exception("Something failed"))
 
-      bucket match {
-        case Some(b) => {
-          val recordsScala = records.asScala.toList
-          val messages = recordsScala.map(_.getS3.getObject.getKey).flatMap(parseS3Object(b, s3))
-
-          val tableName: String = "messages-one"
-
-          writeToDynamo(tableName, messages, region)
-        }
-        case None => Left(new Exception("No bucket found with name " + bucketName))
-      }
+      bucket.map(b => {
+        val recordsScala = records.asScala.toList
+        recordsScala.map(_.getS3.getObject.getKey).flatMap(parseS3Object(b, s3))
+      }).flatMap(writeToDynamo(tableName= "messages-one", region=region))
     }
   }
 
   def parseS3Object(b: Bucket, s3: S3) (x: String): List[SlackMessage] = {
-
     val obj: Option[S3Object] = s3.get(b, x)
 
     obj match {
@@ -64,7 +56,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Exception, Stri
     }
   }
 
-  def writeToDynamo(tableName: String, slackMessages: List[SlackMessage], region: Region): Either[Exception, String] = {
+  def writeToDynamo(tableName: String, region: Region) ( slackMessages: List[SlackMessage]): Either[Exception, String] = {
     implicit val dynamoDB = DynamoDB.at(region)
 
     val tableOrError: Try[Option[Table]] = Try(dynamoDB.table(tableName))

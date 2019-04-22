@@ -6,6 +6,7 @@ import awscala._, dynamodbv2._
 import s3.{Bucket, S3, S3Object}
 import play.api.libs.json._
 import scala.util.{Try, Success, Failure}
+import scala.collection.JavaConverters._
 
 class Handler extends RequestHandler[S3EventNotification, Either[Exception, String]] {
 
@@ -17,6 +18,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Exception, Stri
     val bucketName: String = "farrell-data-engineering-target"
 
     val records = input.getRecords
+
     if (records.isEmpty()) {
       return Right("Function finished executing on 0 records")
     } else {
@@ -24,24 +26,21 @@ class Handler extends RequestHandler[S3EventNotification, Either[Exception, Stri
 
       bucket match {
         case Some(b) => {
-          records.forEach((x: S3EventNotification.S3EventNotificationRecord) => {
-            val exceptionOrString = transferRecords(x, b, region, s3)
-            exceptionOrString match {
-              case Left(value) => {
-                return Left(value)
-              }
-            }
-          })
-          return Right("Your function finished executing successfully")
+          val recordsScala = records.asScala.toList
+          val messages = recordsScala.map(_.getS3.getObject.getKey).flatMap(parseS3Object(b, s3))
+
+          val tableName: String = "messages-one"
+
+          writeToDynamo(tableName, messages, region)
         }
         case None => Left(new Exception("No bucket found with name " + bucketName))
       }
     }
   }
 
-  def transferRecords(record: S3EventNotification.S3EventNotificationRecord, bucket: Bucket, region: Region, s3: S3): Either[Exception, String] = {
-    val key: String = record.getS3.getObject.getKey
-    val obj: Option[S3Object] = s3.get(bucket, key)
+  def parseS3Object(b: Bucket, s3: S3) (x: String): List[SlackMessage] = {
+
+    val obj: Option[S3Object] = s3.get(b, x)
 
     obj match {
       case Some(o) => {
@@ -54,21 +53,18 @@ class Handler extends RequestHandler[S3EventNotification, Either[Exception, Stri
 
         // TODO allow for individual message parse failure, without failing the whole thing
         val slackMessages: JsResult[SlackMessages] = jsonInput.validate[SlackMessages]
-
         slackMessages match {
           case JsSuccess(slackMessages: SlackMessages, jsPath) => {
-            val tableName: String = "messages-one"
-
-            return writeToDynamo(tableName, slackMessages, region)
+            return slackMessages.messages
           }
-          case JsError(e) => return Left(new Exception("An error occurred validating JSON"))
+          case JsError(e) => List.empty[SlackMessage]
         }
       }
-      case None => return Left(new Exception("Error Accessing key " + key))
+      case None => List.empty[SlackMessage]
     }
   }
 
-  def writeToDynamo(tableName: String, slackMessages: SlackMessages, region: Region): Either[Exception, String] = {
+  def writeToDynamo(tableName: String, slackMessages: List[SlackMessage], region: Region): Either[Exception, String] = {
     implicit val dynamoDB = DynamoDB.at(region)
 
     val tableOrError: Try[Option[Table]] = Try(dynamoDB.table(tableName))
@@ -76,8 +72,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Exception, Stri
       case Success(table: Option[Table]) => {
         table match {
           case Some(t) => {
-            val messages = slackMessages.messages
-            messages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
+            slackMessages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
             return Right("Messages put successfully")
           }
           case None => {

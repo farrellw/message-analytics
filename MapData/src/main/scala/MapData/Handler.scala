@@ -5,7 +5,7 @@ import com.amazonaws.services.s3.event.S3EventNotification
 import awscala._, dynamodbv2._
 import s3.{Bucket, S3, S3Object}
 import play.api.libs.json._
-import scala.util.{Try, Success, Failure}
+import scala.util.{Try}
 import scala.collection.JavaConverters._
 
 class Handler extends RequestHandler[S3EventNotification, Either[Throwable, String]] {
@@ -22,7 +22,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
     if (records.isEmpty) {
       Right("Function finished executing on 0 records")
     } else {
-      val bucket: Either[Exception, Bucket] = s3.bucket(bucketName).toRight(new Exception("Something failed"))
+      val bucket: Either[Exception, Bucket] = s3.bucket(bucketName).toRight(new Exception("Retrieving Records from S3"))
 
       bucket.map(b => {
         val recordsScala = records.asScala.toList
@@ -60,10 +60,14 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
     implicit val dynamoDB: DynamoDB = DynamoDB.at(region)
 
     Try(dynamoDB.table(tableName)).toEither.flatMap(tab => {
-      tab.toRight(new Exception("Table from dynamoDB not accessed")).map(t => {
+      tab.toRight(new Exception("Table " + tableName + " not found")).map(t => {
         slackMessages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
         return Right("Messages put successfully")
       })
     })
+  }
+
+  def putToDynamo(table: Table, message: SlackMessage): Unit ={
+    table.put(m.user)
   }
 }

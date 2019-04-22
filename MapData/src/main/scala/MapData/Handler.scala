@@ -27,11 +27,11 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
       bucket.map(b => {
         val recordsScala = records.asScala.toList
         recordsScala.map(_.getS3.getObject.getKey).flatMap(parseS3Object(b, s3))
-      }).flatMap(writeToDynamo(tableName= "messages-one", region=region))
+      }).flatMap(writeToDynamo(tableName = "messages-one", region = region))
     }
   }
 
-  def parseS3Object(b: Bucket, s3: S3) (x: String): List[SlackMessage] = {
+  def parseS3Object(b: Bucket, s3: S3)(x: String): List[SlackMessage] = {
     val obj: Option[S3Object] = s3.get(b, x)
 
     obj match {
@@ -47,7 +47,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
         val slackMessages: JsResult[SlackMessages] = jsonInput.validate[SlackMessages]
         slackMessages match {
           case JsSuccess(slackMessages: SlackMessages, jsPath) => {
-            return slackMessages.messages
+            slackMessages.messages
           }
           case JsError(e) => List.empty[SlackMessage]
         }
@@ -56,22 +56,14 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
     }
   }
 
-  def writeToDynamo(tableName: String, region: Region) ( slackMessages: List[SlackMessage]): Either[Throwable, String] = {
-    implicit val dynamoDB = DynamoDB.at(region)
+  def writeToDynamo(tableName: String, region: Region)(slackMessages: List[SlackMessage]): Either[Throwable, String] = {
+    implicit val dynamoDB: DynamoDB = DynamoDB.at(region)
 
-    Try(dynamoDB.table(tableName)).toEither.flatMap(
-      tab => {
-        tab match
-        {
-          case Some(t) => {
-            slackMessages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
-            Right("Messages put successfully")
-
-          }
-          case None => {
-            Left(new Exception("Cannot find table name " + tableName))
-          }
-        }
+    Try(dynamoDB.table(tableName)).toEither.flatMap(tab => {
+      tab.toRight(new Exception("Table from dynamoDB not accessed")).map(t => {
+        slackMessages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
+        return Right("Messages put successfully")
       })
+    })
   }
 }

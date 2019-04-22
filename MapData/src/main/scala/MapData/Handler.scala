@@ -8,9 +8,9 @@ import play.api.libs.json._
 import scala.util.{Try, Success, Failure}
 import scala.collection.JavaConverters._
 
-class Handler extends RequestHandler[S3EventNotification, Either[Exception, String]] {
+class Handler extends RequestHandler[S3EventNotification, Either[Throwable, String]] {
 
-  def handleRequest(input: S3EventNotification, context: Context): Either[Exception, String] = {
+  def handleRequest(input: S3EventNotification, context: Context): Either[Throwable, String] = {
     val region: Region = Region.US_EAST_1
 
     implicit val s3 = S3.at(region)
@@ -19,7 +19,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Exception, Stri
 
     val records = input.getRecords
 
-    if (records.isEmpty()) {
+    if (records.isEmpty) {
       Right("Function finished executing on 0 records")
     } else {
       val bucket: Either[Exception, Bucket] = s3.bucket(bucketName).toRight(new Exception("Something failed"))
@@ -56,23 +56,22 @@ class Handler extends RequestHandler[S3EventNotification, Either[Exception, Stri
     }
   }
 
-  def writeToDynamo(tableName: String, region: Region) ( slackMessages: List[SlackMessage]): Either[Exception, String] = {
+  def writeToDynamo(tableName: String, region: Region) ( slackMessages: List[SlackMessage]): Either[Throwable, String] = {
     implicit val dynamoDB = DynamoDB.at(region)
 
-    val tableOrError: Try[Option[Table]] = Try(dynamoDB.table(tableName))
-    tableOrError match {
-      case Success(table: Option[Table]) => {
-        table match {
+    Try(dynamoDB.table(tableName)).toEither.flatMap(
+      tab => {
+        tab match
+        {
           case Some(t) => {
             slackMessages.foreach(m => t.put(m.user, m.ts, "Text" -> m.text))
-            return Right("Messages put successfully")
+            Right("Messages put successfully")
+
           }
           case None => {
-            return Left(new Exception("Cannot find table name " + tableName))
+            Left(new Exception("Cannot find table name " + tableName))
           }
         }
-      }
-      case Failure(e) => return Left(new Exception("Failed connecting to dynamoDB"))
-    }
+      })
   }
 }

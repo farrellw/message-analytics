@@ -2,8 +2,7 @@ version: 0.2
 phases:
   build:
     commands:
-      - RUN mkdir build
-      - COPY MapData /build
-      - WORKDIR /build
-
-      - RUN sbt test
+      - mkdir -p build
+      - cp MapData /build
+      - cd /build
+      - sbt test

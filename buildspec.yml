@@ -2,5 +2,8 @@ version: 0.2
 phases:
   build:
     commands:
-      - cd MapData
-      - docker build .
+      - RUN mkdir build
+      - COPY MapData /build
+      - WORKDIR /build
+
+      - RUN sbt test

@@ -3,6 +3,6 @@ phases:
   build:
     commands:
       - mkdir -p build
-      - cp MapData /build
-      - cd /build
+      - cp -r MapData ./build
+      - cd ./build
       - sbt test

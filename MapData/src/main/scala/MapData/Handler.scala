@@ -37,7 +37,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
 
     obj.toEither.flatMap(ob => {
       ob.toRight(new Exception("Object not found in s3")).map(o => {
-        parseMessages(parseJSON(o))
+        Helper.parseMessages(parseJSON(o))
       })
     })
   }
@@ -50,17 +50,6 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
       stream.close()
     }
     jsonInput
-  }
-
-  def parseMessages(jsonInput: JsValue): List[SlackMessage] = {
-    // TODO allow for individual message parse failure, without failing the whole thing
-    val slackMessages: JsResult[SlackMessages] = jsonInput.validate[SlackMessages]
-    slackMessages match {
-      case JsSuccess(slackMessages: SlackMessages, jsPath) => {
-        slackMessages.messages
-      }
-      case JsError(e) => List.empty[SlackMessage]
-    }
   }
 
   def writeToDynamo(tableName: String, region: Region)(slackMessages: List[SlackMessage]): Either[Throwable, String] = {

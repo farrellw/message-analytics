@@ -14,7 +14,8 @@ libraryDependencies ++= Seq(
   "com.amazonaws" % "aws-lambda-java-core" % "1.2.0",
   "com.github.seratch" %% "awscala-dynamodb" % "0.8.+",
   "com.github.seratch" %% "awscala-s3" % "0.8.+",
-  "com.typesafe.play" %% "play-json" % "2.7.2"
+  "com.typesafe.play" %% "play-json" % "2.7.2",
+"org.scalatest" %% "scalatest" % "3.0.5" % "test"
 )
 
 scalacOptions ++= Seq(

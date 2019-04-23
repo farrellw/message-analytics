@@ -6,7 +6,8 @@
   "scripts": {
     "build": "sbt assembly",
     "deploy": "serverless deploy",
-    "invoke:cloud": "serverless invoke -f mapData --path testS3Event.json --log"
+    "invoke:cloud": "serverless invoke -f mapData --path testS3Event.json --log",
+    "test": "sbt test"
   },
   "author": "",
   "license": "ISC"

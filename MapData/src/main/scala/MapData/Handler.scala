@@ -36,7 +36,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
     val obj: Try[Option[S3Object]] = Try(s3.get(b, x))
 
     obj.toEither.flatMap(ob => {
-      ob.toRight(new Exception("Object not found in s3")).map(o => {
+      ob.toRight(new Exception("Object not found in s3 service")).map(o => {
         Helper.parseMessages(parseJSON(o))
       })
     })

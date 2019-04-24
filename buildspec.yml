@@ -6,3 +6,8 @@ phases:
       - cp -r MapData ./build
       - cd ./build/MapData
       - sbt test
+artifacts:
+  files:
+    - ./build/MapData/target/scala-2.12/mapData.jar
+  name: mapDataApplication
+  discard-paths: yes

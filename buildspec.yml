@@ -5,9 +5,12 @@ phases:
       - mkdir -p build
       - cp -r MapData ./build
       - cd ./build/MapData
+      - sbt assembly
       - sbt test
 artifacts:
   files:
     - ./build/MapData/target/scala-2.12/mapData.jar
+    - target/scala-2.12/mapData.jar
+    - target/mapData.jar
   name: mapDataApplication
   discard-paths: yes

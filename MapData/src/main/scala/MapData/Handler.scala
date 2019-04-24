@@ -12,7 +12,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
 
   def handleRequest(input: S3EventNotification, context: Context): Either[Throwable, String] = {
     val region: Region = Region.US_EAST_1
-
+    println("Entering handle request")
     implicit val s3: S3 = S3.at(region)
 
     val bucketName: String = "farrell-data-engineering-target"

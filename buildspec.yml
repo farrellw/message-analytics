@@ -6,12 +6,9 @@ phases:
       - cp -r MapData ./build
       - cd ./build/MapData
       - sbt assembly
-      - npm install -g serverless
-      - serverless deploy
 artifacts:
   files:
     - ./build/MapData/target/scala-2.12/mapData.jar
     - ./build/MapData/serverless.yml
-    - ./build/MapData/my-artifacts/**/*
   name: mapDataApplication
   discard-paths: yes

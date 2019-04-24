@@ -6,7 +6,7 @@ import play.api.libs.json.{JsValue, Json}
 
 class MapDataTest extends  FunSpec {
   describe("MapData.MapDataTest") {
-    it("MapData.MapDataTest Passes One Test") {
+    it("MapData.MapDataTest Passes A Test") {
       val expected: Int = 27
       val actual: Int = 27
       assert(expected === actual)

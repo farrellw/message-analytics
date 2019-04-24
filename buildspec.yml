@@ -9,6 +9,7 @@ phases:
       - sbt test
       - npm install -g serverless
       - serverless package --package my-artifacts
+      - serverless deploy
 artifacts:
   files:
     - ./build/MapData/target/scala-2.12/mapData.jar

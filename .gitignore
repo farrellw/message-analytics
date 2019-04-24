@@ -14,7 +14,7 @@ project/plugins/project/
 
 # Serverless directories
 .serverless
-
+my_artifacts
 # sbt
 # (may want to keep parts of 'project')
 bin/

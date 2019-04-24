@@ -6,9 +6,7 @@ phases:
       - cp -r MapData ./build
       - cd ./build/MapData
       - sbt assembly
-      - sbt test
       - npm install -g serverless
-      - serverless package --package my-artifacts
       - serverless deploy
 artifacts:
   files:

@@ -58,7 +58,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
     Try(dynamoDB.table(tableName)).toEither.flatMap(tab => {
       tab.toRight(new Exception("Table " + tableName + " not found")).map(t => {
         slackMessages.foreach(putToDynamo(t))
-        return Right("Messages put successfully")
+        return Right("Messages put successfully.")
       })
     })
   }

@@ -10,7 +10,5 @@ phases:
 artifacts:
   files:
     - ./build/MapData/target/scala-2.12/mapData.jar
-    - target/scala-2.12/mapData.jar
-    - target/mapData.jar
   name: mapDataApplication
   discard-paths: yes

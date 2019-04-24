@@ -4,5 +4,5 @@ phases:
     commands:
       - mkdir -p build
       - cp -r MapData ./build
-      - cd ./build
+      - cd ./build/MapData
       - sbt test

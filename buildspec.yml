@@ -4,7 +4,6 @@ phases:
     commands:
       - mkdir -p build
       - cp -r MapData ./build
-      - cp
       - cd ./build/MapData
       - sbt assembly
 artifacts:

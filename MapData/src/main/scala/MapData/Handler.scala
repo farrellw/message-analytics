@@ -11,32 +11,38 @@ import scala.collection.JavaConverters._
 class Handler extends RequestHandler[S3EventNotification, Either[Throwable, String]] {
 
   def handleRequest(input: S3EventNotification, context: Context): Either[Throwable, String] = {
+    println("Handle request begun")
     val region: Region = Region.US_EAST_1
-    println("Entering handle request")
     implicit val s3: S3 = S3.at(region)
 
     val bucketName: String = "farrell-data-engineering-target"
 
-    val records = input.getRecords
+    val records = input.getRecords.asScala.toList
 
     if (records.isEmpty) {
       Right("Function finished executing on 0 records")
     } else {
-      val bucket: Either[Exception, Bucket] = s3.bucket(bucketName).toRight(new Exception("Retrieving Records from S3"))
+      //If either S3 fails connecting, or bucket of the correct name is not found. Return the exception.
+      val bucket: Either[Throwable, Bucket] = retrieveS3Bucket(bucketName, s3)
 
       bucket.flatMap(b => {
-        val recordsScala = records.asScala.toList
-        val slackMessageList = recordsScala.map(_.getS3.getObject.getKey).map(parseS3Object(b, s3)).flatMap(_.getOrElse(List.empty))
+        val slackMessageList = records.map(_.getS3.getObject.getKey).map(parseS3Object(b, s3)).flatMap(_.getOrElse(List.empty))
         writeToDynamo(tableName = "messages-one", region = region)(slackMessageList)
       })
     }
+  }
+
+  def retrieveS3Bucket(bucketName: String, s3: S3): Either[Throwable, Bucket] = {
+    val attemptedBucket: Either[Throwable, Option[Bucket]] = Try(s3.bucket(bucketName)).toEither
+
+    attemptedBucket.flatMap(_.toRight(new Exception("Bucket " + bucketName + " not found")))
   }
 
   def parseS3Object(b: Bucket, s3: S3)(x: String): Either[Throwable, List[SlackMessage]] = {
     val obj: Try[Option[S3Object]] = Try(s3.get(b, x))
 
     obj.toEither.flatMap(ob => {
-      ob.toRight(new Exception("Object not found in s3 service")).map(o => {
+      ob.toRight(new Exception("Object not found in s3")).map(o => {
         Helper.parseMessages(parseJSON(o))
       })
     })
@@ -58,7 +64,6 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
     Try(dynamoDB.table(tableName)).toEither.flatMap(tab => {
       tab.toRight(new Exception("Table " + tableName + " not found")).map(t => {
         slackMessages.foreach(putToDynamo(t))
-        println("Let's write this thing")
         return Right("Messages put successfully.")
       })
     })

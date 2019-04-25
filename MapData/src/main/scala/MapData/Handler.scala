@@ -2,16 +2,17 @@ package MapData
 
 import com.amazonaws.services.lambda.runtime.{Context, RequestHandler}
 import com.amazonaws.services.s3.event.S3EventNotification
-import awscala._, dynamodbv2.{DynamoDB, Table}
+import awscala._
+import dynamodbv2.{DynamoDB, Table}
 import s3.{Bucket, S3, S3Object}
 import play.api.libs.json._
-import scala.util.Try
+
+import scala.util.{Failure, Success, Try}
 import scala.collection.JavaConverters._
 
 class Handler extends RequestHandler[S3EventNotification, Either[Throwable, String]] {
 
   def handleRequest(input: S3EventNotification, context: Context): Either[Throwable, String] = {
-    println("Handle request begun")
     val region: Region = Region.US_EAST_1
     implicit val s3: S3 = S3.at(region)
 

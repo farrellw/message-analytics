@@ -10,5 +10,8 @@
     "test": "sbt test"
   },
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "serverless-plugin-existing-s3": "^2.3.3"
+  }
 }

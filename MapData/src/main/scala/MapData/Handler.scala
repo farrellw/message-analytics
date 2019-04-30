@@ -16,7 +16,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
     val region: Region = Region.US_EAST_1
     implicit val s3: S3 = S3.at(region)
 
-    val bucketName: String = "farrell-data-engineering-target"
+    val bucketName: String = "database-0"
 
     val records = input.getRecords.asScala.toList
 
@@ -28,7 +28,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
 
       bucket.flatMap(b => {
         val slackMessageList = records.map(_.getS3.getObject.getKey).map(parseS3Object(b, s3)).flatMap(_.getOrElse(List.empty))
-        writeToDynamo(tableName = "messages-one", region = region)(slackMessageList)
+        writeToDynamo(tableName = "database-one", region = region)(slackMessageList)
       })
     }
   }

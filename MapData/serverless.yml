@@ -1,11 +1,52 @@
+#plugins:
+#  - serverless-plugin-existing-s3
+
 service: MapData
 
 provider:
   name: aws
   runtime: java8
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:ListBucket
+        - s3:GetBucket
+        - s3:GetObject
+        - s3:GetObjectAcl
+        - s3:GetObjectTagging
+        - s3:PutObjectVersionAcl
+        - s3:PutObjectVersionTagging
+      Resource: "arn:aws:s3:::database-0"
+    - Effect: Allow
+      Action:
+        - s3:GetBucketNotification
+        - s3:PutBucketNotification
+      Resource:
+        Fn::Join:
+          - ""
+          - - "arn:aws:s3:::database-0"
+    - Effect: Allow
+      Action:
+        - dynamodb:ListTables
+        - dynamodb:PutItem
+        - dynamodb:DescribeTable
+      Resource: "arn:aws:dynamodb:us-east-1:403637535516:table/database-one"
+    - Effect: Allow
+      Action:
+        - logs:*
+      Resource: "arn:aws:logs:us-east-1:403637535516:*"
+
 package:
   artifact: mapData.jar
 
 functions:
   mapData:
     handler: MapData.Handler
+#    Triggering with s3 event doesn't work.
+#    events:
+#      - s3:
+#        bucket: database-0
+#        event: s3:ObjectCreated:*
+#        rules:
+#          - prefix: records/
+#          - suffix: .json

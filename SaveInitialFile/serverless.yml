@@ -17,10 +17,6 @@ provider:
       Action:
         - logs:*
       Resource: "arn:aws:logs:us-east-1:403637535516:*"
-    - Effect: Allow
-      Action:
-        - logs:*
-      Resource: "arn:aws:logs:us-east-1:403637535516:log-group:/aws/lambda/UploadToS3:*"
 
 package:
   artifact: target/scala-2.12/saveInitialFile.jar

@@ -10,12 +10,10 @@ import s3._
 class ApiGatewayHandler extends RequestHandler[APIGatewayProxyRequestEvent, ApiGatewayResponse] {
 
   def handleRequest(input: APIGatewayProxyRequestEvent, context: Context): ApiGatewayResponse = {
-    println("Handle API Gateway Proxy Request")
-
     implicit val s3 = S3.at(Region.US_EAST_1)
 
-    s3.putObject("farrell-data-engineering-target", "records/" + new DateTime().toString() + ".json", input.getBody())
-    
+    val result = s3.putObject("database-0", "records/" + new DateTime().toString() + ".json", input.getBody())
+
     val headers = Map("x-custom-response-header" -> "my custom response header value")
     ApiGatewayResponse(200, " Your function executed successfully! File Successfully saved to S3.",
       JavaConverters.mapAsJavaMap[String, Object](headers),

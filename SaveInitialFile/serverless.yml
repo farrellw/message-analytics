@@ -3,6 +3,24 @@ service: SaveInitialFile
 provider:
   name: aws
   runtime: java8
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - s3:ListBucket
+        - s3:PutObject
+        - s3:PutObjectAcl
+        - s3:PutObjectTagging
+        - s3:PutObjectVersionAcl
+        - s3:PutObjectVersionTagging
+      Resource: "arn:aws:s3:::database-0"
+    - Effect: Allow
+      Action:
+        - logs:*
+      Resource: "arn:aws:logs:us-east-1:403637535516:*"
+    - Effect: Allow
+      Action:
+        - logs:*
+      Resource: "arn:aws:logs:us-east-1:403637535516:log-group:/aws/lambda/UploadToS3:*"
 
 package:
   artifact: target/scala-2.12/saveInitialFile.jar

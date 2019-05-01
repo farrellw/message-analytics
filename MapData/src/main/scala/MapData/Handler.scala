@@ -13,7 +13,7 @@ import scala.collection.JavaConverters._
 class Handler extends RequestHandler[S3EventNotification, Either[Throwable, String]] {
 
   def handleRequest(input: S3EventNotification, context: Context): Either[Throwable, String] = {
-    println("Lambda Function")
+    println("Lambda Func")
     val region: Region = Region.US_EAST_1
     implicit val s3: S3 = S3.at(region)
 

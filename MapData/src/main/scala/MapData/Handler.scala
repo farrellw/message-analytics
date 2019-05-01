@@ -27,7 +27,7 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
       val bucket: Either[Throwable, Bucket] = retrieveS3Bucket(bucketName, s3)
 
       bucket.flatMap(b => {
-        val slackMessageList = records.map(_.getS3.getObject.getKey).map(parseS3Object(b, s3)).flatMap(_.getOrElse(List.empty))
+        val slackMessageList = records.map(_.getS3.getObject.getKey).map(_.replace("%3A", ":")).map(parseS3Object(b, s3)).flatMap(_.getOrElse(List.empty))
         writeToDynamo(tableName = "database-one", region = region)(slackMessageList)
       })
     }
@@ -40,9 +40,9 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
   }
 
   def parseS3Object(b: Bucket, s3: S3)(x: String): Either[Throwable, List[SlackMessage]] = {
-    val obj: Try[Option[S3Object]] = Try(s3.get(b, x))
+    val obj: Either[Throwable, Option[S3Object]] = Try(s3.get(b, x)).toEither
 
-    obj.toEither.flatMap(ob => {
+    obj.flatMap(ob => {
       ob.toRight(new Exception("Object not found in s3")).map(o => {
         Helper.parseMessages(parseJSON(o))
       })
@@ -62,7 +62,9 @@ class Handler extends RequestHandler[S3EventNotification, Either[Throwable, Stri
   def writeToDynamo(tableName: String, region: Region)(slackMessages: List[SlackMessage]): Either[Throwable, String] = {
     implicit val dynamoDB: DynamoDB = DynamoDB.at(region)
 
-    Try(dynamoDB.table(tableName)).toEither.flatMap(tab => {
+    val attemptedTable: Either[Throwable, Option[Table]] = Try(dynamoDB.table(tableName)).toEither
+
+    attemptedTable.flatMap(tab => {
       tab.toRight(new Exception("Table " + tableName + " not found")).map(t => {
         slackMessages.foreach(putToDynamo(t))
         return Right("Messages put successfully.")

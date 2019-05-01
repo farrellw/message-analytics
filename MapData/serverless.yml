@@ -32,7 +32,7 @@ provider:
       Resource: "arn:aws:logs:us-east-1:403637535516:*"
 
 package:
-  artifact: target/scala-2.12/mapData.jar
+  artifact: mapData.jar
 
 functions:
   mapData:
